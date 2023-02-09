@@ -1,5 +1,5 @@
 # Cortex Debug
-
+[![CI](https://github.com/OptifySudarshanPatil/cortex-debug/actions/workflows/main.yaml/badge.svg)](https://github.com/OptifySudarshanPatil/cortex-debug/actions/workflows/main.yaml)
 ![Visual Studio Code with Cortex-Debug Installed](./images/vs-code-screenshot.png)
 
 Debugging support for ARM Cortex-M Microcontrollers with the following features:
