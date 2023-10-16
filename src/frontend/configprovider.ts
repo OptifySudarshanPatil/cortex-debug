@@ -29,6 +29,18 @@ const JLINK_VALID_RTOS: string[] = ['Azure', 'ChibiOS', 'embOS', 'FreeRTOS', 'Nu
 export class CortexDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
     constructor(private context: vscode.ExtensionContext) {}
 
+    public provideDebugConfigurations(): vscode.ProviderResult<vscode.DebugConfiguration[]> {
+        return [{
+            name: 'Cortex Debug',
+            cwd: '${workspaceFolder}',
+            executable: './bin/executable.elf',
+            request: 'launch',
+            type: 'cortex-debug',
+            runToEntryPoint: 'main',
+            servertype: 'jlink'
+        }];
+    }
+    
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
         config: vscode.DebugConfiguration,
@@ -203,14 +215,12 @@ export class CortexDebugConfigurationProvider implements vscode.DebugConfigurati
         if (config.liveWatch?.enabled) {
             const supportedList = ['openocd', 'jlink', 'stlink'];
             if (supportedList.indexOf(config.servertype) < 0) {
-                let str = '';
-                for (const s of supportedList) {
-                    str += (str ? ', ' : '') + `'${s}'`;
-                }
-                // config.liveWatch.enabled = false;
-                vscode.window.showWarningMessage(
-                    `Live watch is not supported for servertype '${config.servertype}'. Only ${str} supported/tested.\n` +
-                    `Report back to us if it works with '${config.servertype}'`);
+                const str = supportedList.join(', ');
+                vscode.window.showInformationMessage(
+                    `Live watch is not officially supported for servertype '${config.servertype}'. ` +
+                    `Only ${str} are supported and tested. ` +
+                    `Report back to us if it works with your servertype '${config.servertype}'.\n \n` +
+                    'If you are using an "external" servertype and it is working for you, then you can safely ignore this message. ');
             }
         }
 
@@ -257,7 +267,7 @@ export class CortexDebugConfigurationProvider implements vscode.DebugConfigurati
         // Right now, we don't consider a bad executable as fatal. Technically, you don't need an executable but
         // users will get a horrible debug experience ... so many things don't work.
         const def = defSymbolFile(config.executable);
-        const symFiles: SymbolFile[] = config.symbolFiles || [def];
+        const symFiles: SymbolFile[] = config.symbolFiles?.map((v) => typeof v === 'string' ? defSymbolFile(v) : v) || [def];
         if (!symFiles || (symFiles.length === 0)) {
             vscode.window.showWarningMessage('No "executable" or "symbolFiles" specified. We will try to run program without symbols');
         } else {
@@ -298,6 +308,10 @@ export class CortexDebugConfigurationProvider implements vscode.DebugConfigurati
                 fName = path.normalize(fName).replace(/\\/g, '/');
                 config.loadFiles[ix] = fName;
             }
+        } else if (config.executable && config.symbolFiles) {
+            // This is a special case when you have symbol files, we don't pass anything to gdb on the command line
+            // and a target load will fail. Create a loadFiles from the executable if it exists.
+            config.loadFiles = [ config.executable ];
         }
     }
 
@@ -411,10 +425,18 @@ export class CortexDebugConfigurationProvider implements vscode.DebugConfigurati
 
     private setOsSpecficConfigSetting(config: vscode.DebugConfiguration, dstName: string, propName: string = '') {
         if (!config[dstName]) {
-            const configuration = vscode.workspace.getConfiguration('cortex-debug');
-            const osName = os.platform();
-            const osOverride = (propName || dstName) + '.' + ((osName === 'win32') ? 'windows' : (osName === 'darwin') ? 'osx' : 'linux');
-            config[dstName] = configuration.get(osOverride, configuration.get(propName || dstName, ''));
+            propName = propName || dstName;
+            const settings = vscode.workspace.getConfiguration('cortex-debug');
+            const obj = settings[propName];
+            if (obj) {
+                if (typeof obj === 'object') {
+                    const osName = os.platform();
+                    const osOverride = ((osName === 'win32') ? 'windows' : (osName === 'darwin') ? 'osx' : 'linux');
+                    config[dstName] = obj[osOverride] || '';
+                } else {
+                    config[dstName] = obj;
+                }
+            }
         }
     }
 
@@ -615,8 +637,8 @@ export class CortexDebugConfigurationProvider implements vscode.DebugConfigurati
             return 'Device Identifier is required for PE configurations. Please run `pegdbserver_console.exe -devicelist` for supported devices';
         }
 
-        if (config.swoConfig.enabled) {
-            return 'The PE GDB Server does not have support for SWO';
+        if (config.swoConfig.enabled && config.swoConfig.source !== 'socket') {
+            return 'The PE GDB Server Only supports socket type SWO';
         }
 
         return null;

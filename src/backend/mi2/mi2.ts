@@ -89,7 +89,9 @@ export class MI2 extends EventEmitter implements IBackend {
             if (!this.forLiveGdb) {
                 let timeout = setTimeout(() => {
                     this.gdbStartError();
-                    reject(new Error('Could not start GDB, no response from gdb'));
+                    setTimeout(() => {
+                        reject(new Error('Could not start gdb, no response from gdb'));
+                    }, 10);
                     timeout = undefined;
                 }, 5000);
 
@@ -807,12 +809,12 @@ export class MI2 extends EventEmitter implements IBackend {
         });
     }
 
-    public getStackDepth(threadId: number): Thenable<number> {
+    public getStackDepth(threadId: number, maxDepth: number = 1000): Thenable<number> {
         if (trace) {
             this.log('stderr', 'getStackDepth');
         }
         return new Promise((resolve, reject) => {
-            this.sendCommand(`stack-info-depth --thread ${threadId} 1000`).then((result) => {
+            this.sendCommand(`stack-info-depth --thread ${threadId} ${maxDepth}`).then((result) => {
                 const depth = result.result('depth');
                 const ret = parseInt(depth);
                 resolve(ret);
@@ -926,7 +928,7 @@ export class MI2 extends EventEmitter implements IBackend {
         }
         expression = expression.replace(/"/g, '\\"');
 
-        const thFr = ((scope === '*') && (threadId !== undefined) && (frameId !== undefined)) ? `--thread ${threadId} --frame ${frameId}` : '';
+        const thFr = ((threadId !== undefined) && (frameId !== undefined)) ? `--thread ${threadId} --frame ${frameId}` : '';
         const createResp = await this.sendCommand(`var-create ${thFr} ${name} ${scope} "${expression}"`);
         let overrideVal = null;
         if (fmt && name !== '-') {
@@ -953,7 +955,7 @@ export class MI2 extends EventEmitter implements IBackend {
             this.log('stderr', 'varListChildren');
         }
         // TODO: add `from` and `to` arguments
-        const res = await this.sendCommand(`var-list-children --all-values ${name}`);
+        const res = await this.sendCommand(`var-list-children --all-values "${name}"`);
         const keywords = ['private', 'protected', 'public'];
         const children = res.result('children') || [];
         const omg: VariableObject[] = [];
@@ -971,8 +973,8 @@ export class MI2 extends EventEmitter implements IBackend {
     }
 
     public static getThreadFrameStr(threadId: number, frameId: number): string {
-        const th = threadId > 0 ? `--thread ${threadId} ` : '';
-        const fr = frameId >= 0 ? `--frame ${frameId}` : '';
+        const th = ((threadId !== undefined) && (threadId > 0)) ? `--thread ${threadId} ` : '';
+        const fr = ((frameId !== undefined) && (frameId >= 0)) ? `--frame ${frameId}` : '';
         return th + fr;
     }
 

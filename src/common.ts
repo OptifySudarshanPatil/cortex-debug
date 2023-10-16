@@ -5,7 +5,9 @@ import { TcpPortScanner } from './tcpportscanner';
 import { GDBServer } from './backend/server';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as stream from 'stream';
+import * as path from 'path';
 import { GDBDebugSession } from './gdb';
 const readline = require('readline');
 
@@ -287,6 +289,7 @@ export interface ConfigurationArguments extends DebugProtocol.LaunchRequestArgum
     /// We don't expect the following to be in booleann form or have the value of 'none' after
     /// The config provider has done the conversion. If it exists, it means output 'something'
     showDevDebugOutput: ADAPTER_DEBUG_MODE;
+    pvtShowDevDebugOutput: ADAPTER_DEBUG_MODE;
     showDevDebugTimestamps: boolean;
     cwd: string;
     extensionPath: string;
@@ -658,6 +661,10 @@ export class HrTimer {
         return this.start;
     }
 
+    public static getNow(): bigint {
+        return process.hrtime.bigint();
+    }
+
     public deltaNs(): string {
         return (process.hrtime.bigint() - this.start).toString();
     }
@@ -881,4 +888,40 @@ export class SpawnLineReader extends EventEmitter {
             this.emit('error', e);
         }
     }
+}
+
+// Both arguments are expected to be full path names
+export function getPathRelative(base: string, target: string) {
+    if (os.platform() === 'win32') {
+        base = base.replace(/\\/g, '/');
+        target = target.replace(/\\/g, '/');
+    }
+    if (!path.isAbsolute(base) || !path.isAbsolute(target)) {
+        return target;
+    }
+    const baseElts = base.split('/');
+    const targetElts = target.split('/');
+    if (!base || !target || (base.length > target.length) || (baseElts[0] !== targetElts[0])) {
+        // Roots don't even match or base is larger than the target, so no point
+        return target;
+    }
+    while (baseElts.length && targetElts.length) {
+        if (baseElts[0] !== targetElts[0]) {
+            break;
+        }
+        baseElts.shift();
+        targetElts.shift();
+    }
+    if (baseElts.length === 0) {
+        return './' + targetElts.join('/');
+    }
+    if (baseElts.length > 4) {
+        return target;
+    }
+    while (baseElts.length) {
+        targetElts.unshift('..');
+        baseElts.shift();
+    }
+    const ret = targetElts.join('/');
+    return ret;
 }

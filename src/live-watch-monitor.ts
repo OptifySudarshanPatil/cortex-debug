@@ -1,7 +1,7 @@
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { Handles } from '@vscode/debugadapter';
 import { MI2 } from './backend/mi2/mi2';
-import { ExtendedVariable, GDBDebugSession, RequestQueue } from './gdb';
+import { decodeReference, ExtendedVariable, GDBDebugSession, RequestQueue } from './gdb';
 import { MIError, VariableObject } from './backend/backend';
 import * as crypto from 'crypto';
 import { MINode } from './backend/mi_parse';
@@ -83,6 +83,7 @@ export class VariablesHandler {
     public evaluateRequest(
         r: DebugProtocol.EvaluateResponse, a: DebugProtocol.EvaluateArguments,
         miDebugger: MI2, session: GDBDebugSession, forceNoFrameId = false): Promise<void> {
+        a.context = a.context || 'hover';
         if (a.context !== 'repl') {
             if (this.isBusy()) {
                 this.busyError(r, a);
@@ -109,7 +110,7 @@ export class VariablesHandler {
                     threadId = frameId = -1;
                     args.frameId = undefined;
                 } else if (args.frameId !== undefined) {
-                    [threadId, frameId] = GDBDebugSession.decodeReference(args.frameId);
+                    [threadId, frameId] = decodeReference(args.frameId);
                 }
 
                 if (args.context !== 'repl') {
@@ -123,59 +124,61 @@ export class VariablesHandler {
                         const exprName = hasher.digest('hex');
                         const varObjName = `${args.context}_${exprName}`;
                         let varObj: VariableObject;
-                        let forceCreate = false;
-                        try {
-                            let varId = this.variableHandlesReverse[varObjName];
-                            const cachedChange = this.cachedChangeList && this.cachedChangeList[varObjName];
-                            let changelist;
-                            if (cachedChange) {
-                                changelist = [];
-                            } else if (this.cachedChangeList && (varId !== undefined)) {
-                                changelist = [];
-                            } else {
-                                const changes = await miDebugger.varUpdate(varObjName, threadId, frameId);
-                                changelist = changes.result('changelist') ?? [];
-                            }
-                            for (const change of changelist) {
-                                const inScope = MINode.valueOf(change, 'in_scope');
-                                if (inScope === 'true') {
-                                    const name = MINode.valueOf(change, 'name');
-                                    const vId = this.variableHandlesReverse[name];
-                                    const v = this.variableHandles.get(vId) as any;
-                                    v.applyChanges(change);
-                                    if (this.cachedChangeList) {
-                                        this.cachedChangeList[name] = change;
-                                    }
+                        let varId = this.variableHandlesReverse[varObjName];
+                        let forceCreate = varId === undefined;
+                        let updateError;
+                        if (!forceCreate) {
+                            try {
+                                const cachedChange = this.cachedChangeList && this.cachedChangeList[varObjName];
+                                let changelist;
+                                if (cachedChange) {
+                                    changelist = [];
+                                } else if (this.cachedChangeList && (varId !== undefined)) {
+                                    changelist = [];
                                 } else {
-                                    const msg = `${exp} currently not in scope`;
-                                    await miDebugger.sendCommand(`var-delete ${varObjName}`);
-                                    if (session.args.showDevDebugOutput) {
-                                        session.handleMsg('log', `Expression ${msg}. Will try to create again\n`);
-                                    }
-                                    forceCreate = true;
-                                    throw new Error(msg);
+                                    const changes = await miDebugger.varUpdate(varObjName, threadId, frameId);
+                                    changelist = changes.result('changelist') ?? [];
                                 }
+                                for (const change of changelist) {
+                                    const inScope = MINode.valueOf(change, 'in_scope');
+                                    if (inScope === 'true') {
+                                        const name = MINode.valueOf(change, 'name');
+                                        const vId = this.variableHandlesReverse[name];
+                                        const v = this.variableHandles.get(vId) as any;
+                                        v.applyChanges(change);
+                                        if (this.cachedChangeList) {
+                                            this.cachedChangeList[name] = change;
+                                        }
+                                    } else {
+                                        const msg = `${exp} currently not in scope`;
+                                        await miDebugger.sendCommand(`var-delete ${varObjName}`);
+                                        if (session.args.showDevDebugOutput) {
+                                            session.handleMsg('log', `Expression ${msg}. Will try to create again\n`);
+                                        }
+                                        forceCreate = true;
+                                        throw new Error(msg);
+                                    }
+                                }
+                                varObj = this.variableHandles.get(varId) as any;
                             }
-                            varId = this.variableHandlesReverse[varObjName];
-                            varObj = this.variableHandles.get(varId) as any;
+                            catch (err) {
+                                updateError = err;
+                            }
                         }
-                        catch (err) {
-                            if (!this.isBusy() && (forceCreate || ((err instanceof MIError && err.message === 'Variable object not found')))) {
-                                if (this.cachedChangeList) {
-                                    delete this.cachedChangeList[varObjName];
-                                }
-                                if (forceNoFrameId || (args.frameId === undefined)) {
-                                    varObj = await miDebugger.varCreate(0, exp, varObjName, '@');  // Create floating variable
-                                } else {
-                                    varObj = await miDebugger.varCreate(0, exp, varObjName, '*', threadId, frameId);
-                                }
-                                const varId = this.findOrCreateVariable(varObj);
-                                varObj.exp = exp;
-                                varObj.id = varId;
+                        if (!this.isBusy() && (forceCreate || ((updateError instanceof MIError && updateError.message === 'Variable object not found')))) {
+                            if (this.cachedChangeList) {
+                                delete this.cachedChangeList[varObjName];
                             }
-                            else {
-                                throw err;
+                            if (forceNoFrameId || (args.frameId === undefined)) {
+                                varObj = await miDebugger.varCreate(0, exp, varObjName, '@');  // Create floating variable
+                            } else {
+                                varObj = await miDebugger.varCreate(0, exp, varObjName, '@', threadId, frameId);
                             }
+                            varId = this.findOrCreateVariable(varObj);
+                            varObj.exp = exp;
+                            varObj.id = varId;
+                        } else if (!varObj) {
+                            throw updateError || new Error('live watch unknown error');
                         }
 
                         response.body = varObj.toProtocolEvaluateResponseBody();

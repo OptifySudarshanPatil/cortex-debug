@@ -1,9 +1,8 @@
 {
-    "version": "1.7.0",
+    "version": "1.12.2-pre",
     "preview": false,
     "activationEvents": [
         "onDebugResolve:cortex-debug",
-        "onDebugResolve:cppdbg",
         "onStartupFinished"
     ],
     "categories": [
@@ -15,11 +14,6 @@
                 "type": "object",
                 "title": "Debugger",
                 "properties": {
-                    "cortex-debug.registerUseNaturalFormat": {
-                        "type": "boolean",
-                        "default": true,
-                        "description": "If true, display registers in their natural format as specified by ARM. Hex otherwise."
-                    },
                     "cortex-debug.variableUseNaturalFormat": {
                         "type": "boolean",
                         "default": true,
@@ -148,7 +142,7 @@
             {
                 "type": "object",
                 "title": "External: GDB Servers",
-                "properties": {            
+                "properties": {
                     "cortex-debug.JLinkGDBServerPath": {
                         "type": [
                             "string",
@@ -399,42 +393,9 @@
             {
                 "command": "cortex-debug.resetDevice",
                 "title": "Reset device",
-                "icon": "./images/reset.svg"
-            },
-            {
-                "command": "cortex-debug.peripherals.updateNode",
-                "title": "Update Value",
-                "icon": "$(pencil)"
-            },
-            {
-                "command": "cortex-debug.peripherals.copyValue",
-                "title": "Copy Value",
-                "icon": "$(files)"
-            },
-            {
-                "command": "cortex-debug.registers.copyValue",
-                "title": "Copy Value",
-                "icon": "$(files)"
-            },
-            {
-                "command": "cortex-debug.registers.refresh",
-                "title": "Refresh",
-                "icon": "$(refresh)"
-            },
-            {
-                "command": "cortex-debug.registers.regHexModeTurnOff",
-                "title": "Enable Natural mode",
                 "icon": {
-                    "light": "images/hex-on-light.svg",
-                    "dark": "images/hex-on-dark.svg"
-                }
-            },
-            {
-                "command": "cortex-debug.registers.regHexModeTurnOn",
-                "title": "Enable Hex mode",
-                "icon": {
-                    "light": "images/hex-off-light.svg",
-                    "dark": "images/hex-off-dark.svg"
+                    "dark": "images/reset-dark.svg",
+                    "light": "images/reset-light.svg"
                 }
             },
             {
@@ -459,33 +420,24 @@
                 "icon": "$(close)"
             },
             {
-                "command": "cortex-debug.peripherals.setFormat",
-                "title": "Set Value Format"
+                "command": "cortex-debug.liveWatch.editExpr",
+                "title": "Edit expression",
+                "icon": "$(edit)"
             },
             {
-                "command": "cortex-debug.peripherals.forceRefresh",
-                "title": "Refresh",
-                "icon": "$(refresh)"
+                "command": "cortex-debug.liveWatch.moveUp",
+                "title": "Move expression up",
+                "icon": "$(arrow-up)"
             },
             {
-                "command": "cortex-debug.peripherals.refreshAll",
-                "title": "Refresh All",
-                "icon": "$(refresh)"
+                "command": "cortex-debug.liveWatch.moveDown",
+                "title": "Move expression down",
+                "icon": "$(arrow-down)"
             },
             {
-                "command": "cortex-debug.peripherals.collapseAll",
-                "title": "Collapse All",
-                "icon": "$(collapse-all)"
-            },
-            {
-                "command": "cortex-debug.peripherals.pin",
-                "title": "Pin",
-                "icon": "$(pin)"
-            },
-            {
-                "command": "cortex-debug.peripherals.unpin",
-                "title": "Unpin",
-                "icon": "$(pinned)"
+                "command": "cortex-debug.liveWatch.addToLiveWatch",
+                "title": "Add to Live Watch",
+                "icon": "$(plus)"
             },
             {
                 "category": "Cortex-Debug",
@@ -496,16 +448,6 @@
                 "category": "Cortex-Debug",
                 "command": "cortex-debug.examineMemoryLegacy",
                 "title": "View Memory (Legacy)"
-            },
-            {
-                "category": "Cortex-Debug",
-                "command": "cortex-debug.viewDisassembly",
-                "title": "View Disassembly (Function)"
-            },
-            {
-                "category": "Cortex-Debug",
-                "command": "cortex-debug.setForceDisassembly",
-                "title": "Set Force Disassembly"
             },
             {
                 "category": "Cortex-Debug",
@@ -528,15 +470,6 @@
         ],
         "languages": [
             {
-                "id": "cortex-debug.disassembly",
-                "aliases": [
-                    "Cortex-Debug Disassembly"
-                ],
-                "extensions": [
-                    ".cdasm"
-                ]
-            },
-            {
                 "id": "cortex-debug.memoryview",
                 "aliases": [
                     "Cortex-Debug Memory View"
@@ -547,11 +480,6 @@
             }
         ],
         "grammars": [
-            {
-                "language": "cortex-debug.disassembly",
-                "scopeName": "source.cortex-debug-disassembly",
-                "path": "./syntaxes/cortex-debug-disassembly.json"
-            },
             {
                 "language": "cortex-debug.memoryview",
                 "scopeName": "source.cortex-debug-memoryview",
@@ -591,7 +519,7 @@
                         "properties": {
                             "servertype": {
                                 "type": "string",
-                                "description": "GDB Server type - supported types are jlink, openocd, pyocd, pe, stlink, stutil, qemu, bmp and external",
+                                "description": "GDB Server type - supported types are jlink, openocd, pyocd, pe, stlink, stutil, qemu, bmp and external. For \"external\", [please read our Wiki](https://github.com/Marus/cortex-debug/wiki/External-gdb-server-configuration)",
                                 "enum": [
                                     "jlink",
                                     "openocd",
@@ -611,7 +539,8 @@
                             "debuggerArgs": {
                                 "default": [],
                                 "description": "Additional arguments to pass to GDB command line",
-                                "type": "array"
+                                "type": "array",
+                                "items": "string"
                             },
                             "preAttachCommands": {
                                 "default": [],
@@ -749,10 +678,10 @@
                                 "type": "string"
                             },
                             "symbolFiles": {
-                                "description": "List of ELF files to load symbols from instead of the executable file. Program information is ignored (see `loadFiles`). Can be an empty list to specify none. If this property does not exist, then the executable is used for symbols",
+                                "description": "Array of ELF files to load symbols from instead of the executable file. Each item in the array cab be a string or an object. Program information is ignored (see `loadFiles`). Can be an empty list to specify none. If this property does not exist, then the executable is used for symbols",
                                 "type": "array",
                                 "items": {
-                                    "type": "object",
+                                    "type": ["object", "string"],
                                     "properties": {
                                         "file": {
                                             "type": "string",
@@ -834,6 +763,7 @@
                                 "default": 0
                             },
                             "liveWatch": {
+                                "description": "An object with parameters for Live Watch",
                                 "properties": {
                                     "enabled": {
                                         "default": false,
@@ -855,6 +785,7 @@
                                 }
                             },
                             "chainedConfigurations": {
+                                "description": "An object describing how additional configurations should be launched",
                                 "properties": {
                                     "enabled": {
                                         "default": true,
@@ -975,6 +906,7 @@
                                 }
                             },
                             "graphConfig": {
+                                "description": "Description of how graphing can be done. See our Wiki for details",
                                 "items": {
                                     "oneOf": [
                                         {
@@ -1118,21 +1050,13 @@
                             },
                             "svdFile": {
                                 "default": null,
-                                "description": "This is for 'CORTEX PERIPHERALS' window provided by Cortex-Debug. Path to a CMSIS SVD file describing the peripherals of the microcontroller; if not supplied then one may be selected based upon the 'device' entered.",
+                                "description": "This is for 'XPERIPHERALS' window provided by 'mcu-debug.peripheral-viewer'. It can be a simple file name or more based on a CMSIS pack or deviceName. See 'mcu-debug.peripheral-viewer' for format",
                                 "type": "string"
                             },
                             "svdPath": {
                                 "default": null,
-                                "description": "This is for 'PERIPHERAL VIEW' provided by 'Embedded Tools' Extension from Microsoft. Path to a CMSIS SVD file describing the peripherals of the microcontroller",
+                                "description": "This is for 'XPERIPHERALS' window provided by 'mcu-debug.peripheral-viewer' and 'Embedded Tools' Extension from Microsoft. It can be a simple file name. For 'mcu-debug.peripheral-viewer' or more based on a CMSIS pack or deviceName. See 'mcu-debug.peripheral-viewer' for format",
                                 "type": "string"
-                            },
-                            "svdAddrGapThreshold": {
-                                "default": 16,
-                                "type": "number",
-                                "multipleOf": 1,
-                                "minimum": -1,
-                                "maximum": 32,
-                                "description": "If the gap between registers is less than this threshold (multiple of 8), combine into a single read from device. -1 means never combine registers and is very slow"
                             },
                             "rttConfig": {
                                 "type": "object",
@@ -1364,6 +1288,7 @@
                                 }
                             },
                             "swoConfig": {
+                                "description": "Description of SWO can be configured. Also see our Wiki for details",
                                 "properties": {
                                     "cpuFrequency": {
                                         "default": 0,
@@ -1658,6 +1583,7 @@
                             },
                             "targetId": {
                                 "description": "On BMP this is the ID number that should be passed to the attach command (defaults to 1); for PyOCD this is the target identifier (only needed for custom hardware)",
+                                "type": ["string", "number"],
                                 "anyOf": [
                                     {
                                         "type": "string"
@@ -1693,7 +1619,7 @@
                         "properties": {
                             "servertype": {
                                 "type": "string",
-                                "description": "GDB Server type - supported types are jlink, openocd, pyocd, pe, stlink, stutil, qemu, bmp and external",
+                                "description": "GDB Server type - supported types are jlink, openocd, pyocd, pe, stlink, stutil, qemu, bmp and external. For \"external\", [please read our Wiki](https://github.com/Marus/cortex-debug/wiki/External-gdb-server-configuration)",
                                 "enum": [
                                     "jlink",
                                     "openocd",
@@ -1856,10 +1782,10 @@
                                 "default": null
                             },
                             "symbolFiles": {
-                                "description": "List of ELF files to load symbols from instead of the executable file. Program information is ignored (see `loadFiles`). Can be an empty list to specify none. If this property does not exist, then the executable is used for symbols",
+                                "description": "Array of ELF files to load symbols from instead of the executable file. Each item in the array cab be a string or an object. Program information is ignored (see `loadFiles`). Can be an empty list to specify none. If this property does not exist, then the executable is used for symbols",
                                 "type": "array",
                                 "items": {
-                                    "type": "object",
+                                    "type": ["object", "string"],
                                     "properties": {
                                         "file": {
                                             "type": "string",
@@ -1917,7 +1843,8 @@
                             "runToMain": {
                                 "description": "Deprecated: please use 'runToEntryPoint' instead.",
                                 "type": "boolean",
-                                "default": false
+                                "default": false,
+                                "deprecated": true
                             },
                             "breakAfterReset": {
                                 "default": false,
@@ -1946,6 +1873,7 @@
                                 "default": 0
                             },
                             "liveWatch": {
+                                "description": "An object with parameters for Live Watch",
                                 "properties": {
                                     "enabled": {
                                         "default": false,
@@ -1967,6 +1895,7 @@
                                 }
                             },
                             "ctiOpenOCDConfig": {
+                                "description": "Experimental. Does not work yet",
                                 "properties": {
                                     "enabled": {
                                         "default": true,
@@ -2005,6 +1934,7 @@
                                 }
                             },
                             "chainedConfigurations": {
+                                "description": "An object describing how additional configurations should be launched",
                                 "properties": {
                                     "enabled": {
                                         "default": true,
@@ -2125,6 +2055,7 @@
                                 }
                             },
                             "graphConfig": {
+                                "description": "Description of how graphing can be done. See our Wiki for details",
                                 "items": {
                                     "oneOf": [
                                         {
@@ -2268,21 +2199,13 @@
                             },
                             "svdFile": {
                                 "default": null,
-                                "description": "This is for 'CORTEX PERIPHERALS' window provided by Cortex-Debug. Path to a CMSIS SVD file describing the peripherals of the microcontroller; if not supplied then one may be selected based upon the 'device' entered.",
+                                "description": "This is for 'XPERIPHERALS' window provided by 'mcu-debug.peripheral-viewer'. It can be a simple file name or more based on a CMSIS pack or deviceName. See 'mcu-debug.peripheral-viewer' for format",
                                 "type": "string"
                             },
                             "svdPath": {
                                 "default": null,
-                                "description": "This is for 'PERIPHERAL VIEW' provided by 'Embedded Tools' Extension from Microsoft. Path to a CMSIS SVD file describing the peripherals of the microcontroller",
+                                "description": "This is for 'XPERIPHERALS' window provided by 'mcu-debug.peripheral-viewer' and 'Embedded Tools' Extension from Microsoft. It can be a simple file name. For 'mcu-debug.peripheral-viewer' or more based on a CMSIS pack or deviceName. See 'mcu-debug.peripheral-viewer' for format",
                                 "type": "string"
-                            },
-                            "svdAddrGapThreshold": {
-                                "default": 16,
-                                "type": "number",
-                                "multipleOf": 1,
-                                "minimum": -1,
-                                "maximum": 32,
-                                "description": "If the gap between registers is less than this threshold (multiple of 8), combine into a single read from device. -1 means never combine registers and is very slow"
                             },
                             "rttConfig": {
                                 "type": "object",
@@ -2514,6 +2437,7 @@
                                 }
                             },
                             "swoConfig": {
+                                "description": "Description of SWO can be configured. Also see our Wiki for details",
                                 "properties": {
                                     "cpuFrequency": {
                                         "default": 0,
@@ -2808,6 +2732,7 @@
                             },
                             "targetId": {
                                 "description": "On BMP this is the ID number that should be passed to the attach command (defaults to 1); for PyOCD this is the target identifier (only needed for custom hardware)",
+                                "type": ["string", "number"],
                                 "anyOf": [
                                     {
                                         "type": "string"
@@ -2915,72 +2840,26 @@
                         "label": "Cortex Debug: ST-Util"
                     }
                 ],
-                "initialConfigurations": [
-                    {
-                        "name": "Cortex Debug",
-                        "cwd": "${workspaceFolder}",
-                        "executable": "./bin/executable.elf",
-                        "request": "launch",
-                        "type": "cortex-debug",
-                        "runToEntryPoint": "main",
-                        "servertype": "jlink"
-                    }
-                ],
                 "label": "Cortex Debug",
                 "program": "./dist/debugadapter.js",
                 "runtime": "node",
                 "type": "cortex-debug",
-                "variables": {}
+                "variables": {},
+                "languages": [
+                    "c",
+                    "cpp",
+                    "rust"
+                ]
             }
         ],
         "menus": {
             "commandPalette": [
-                {
-                    "command": "cortex-debug.peripherals.updateNode",
-                    "when": "false"
-                },
-                {
-                    "command": "cortex-debug.peripherals.copyValue",
-                    "when": "false"
-                },
-                {
-                    "command": "cortex-debug.peripherals.forceRefresh",
-                    "when": "false"
-                },
-                {
-                    "command": "cortex-debug.peripherals.refreshAll",
-                    "when": "false"
-                },
-                {
-                    "command": "cortex-debug.peripherals.collapseAll",
-                    "when": "false"
-                },
-                {
-                    "command": "cortex-debug.peripherals.pin",
-                    "when": "false"
-                },
-                {
-                    "command": "cortex-debug.peripherals.unpin",
-                    "when": "false"
-                },
-                {
-                    "command": "cortex-debug.registers.copyValue",
-                    "when": "false"
-                },
                 {
                     "command": "cortex-debug.examineMemory",
                     "when": "debugType == cortex-debug"
                 },
                 {
                     "command": "cortex-debug.examineMemoryLegacy",
-                    "when": "debugType == cortex-debug"
-                },
-                {
-                    "command": "cortex-debug.viewDisassembly",
-                    "when": "debugType == cortex-debug"
-                },
-                {
-                    "command": "cortex-debug.setForceDisassembly",
                     "when": "debugType == cortex-debug"
                 },
                 {
@@ -3005,127 +2884,67 @@
             ],
             "view/item/context": [
                 {
-                    "command": "cortex-debug.liveWatch.removeExpr",
+                    "command": "cortex-debug.liveWatch.editExpr",
                     "when": "view == cortex-debug.liveWatch && viewItem == expression",
                     "group": "inline"
                 },
                 {
-                    "command": "cortex-debug.peripherals.updateNode",
-                    "when": "view == cortex-debug.peripherals && viewItem == field",
+                    "command": "cortex-debug.liveWatch.moveUp",
+                    "when": "view == cortex-debug.liveWatch && viewItem == expression",
                     "group": "inline"
                 },
                 {
-                    "command": "cortex-debug.peripherals.updateNode",
-                    "when": "view == cortex-debug.peripherals && viewItem == fieldWO",
+                    "command": "cortex-debug.liveWatch.moveDown",
+                    "when": "view == cortex-debug.liveWatch && viewItem == expression",
                     "group": "inline"
                 },
                 {
-                    "command": "cortex-debug.peripherals.updateNode",
-                    "when": "view == cortex-debug.peripherals && viewItem == registerRW",
+                    "command": "cortex-debug.liveWatch.removeExpr",
+                    "when": "view == cortex-debug.liveWatch && viewItem == expression",
                     "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.peripherals.updateNode",
-                    "when": "view == cortex-debug.peripherals && viewItem == registerWO",
-                    "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.peripherals.copyValue",
-                    "when": "view == cortex-debug.peripherals && viewItem == field",
-                    "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.peripherals.copyValue",
-                    "when": "view == cortex-debug.peripherals && viewItem == registerRW",
-                    "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.peripherals.copyValue",
-                    "when": "view == cortex-debug.peripherals && viewItem == registerRO",
-                    "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.peripherals.forceRefresh",
-                    "when": "view == cortex-debug.peripherals && viewItem == registerRW"
-                },
-                {
-                    "command": "cortex-debug.peripherals.forceRefresh",
-                    "when": "view == cortex-debug.peripherals && viewItem == register"
-                },
-                {
-                    "command": "cortex-debug.peripherals.forceRefresh",
-                    "when": "view == cortex-debug.peripherals && viewItem == registerRO"
-                },
-                {
-                    "command": "cortex-debug.peripherals.forceRefresh",
-                    "when": "view == cortex-debug.peripherals && viewItem =~ /peripheral.*/"
-                },
-                {
-                    "command": "cortex-debug.peripherals.pin",
-                    "when": "view == cortex-debug.peripherals && viewItem == peripheral",
-                    "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.peripherals.unpin",
-                    "when": "view == cortex-debug.peripherals && viewItem == peripheral.pinned",
-                    "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.registers.copyValue",
-                    "when": "view == cortex-debug.registers && viewItem == register",
-                    "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.registers.copyValue",
-                    "when": "view == cortex-debug.registers && viewItem == field",
-                    "group": "inline"
-                },
-                {
-                    "command": "cortex-debug.peripherals.setFormat",
-                    "when": "view == cortex-debug.peripherals"
                 }
             ],
             "view/title": [
                 {
-                    "command": "cortex-debug.registers.regHexModeTurnOn",
-                    "when": "view == cortex-debug.registers && debugState == stopped &&  cortex-debug:registerUseNaturalFormat",
-                    "group": "navigation"
-                },
-                {
-                    "command": "cortex-debug.registers.regHexModeTurnOff",
-                    "when": "view == cortex-debug.registers && debugState == stopped && !cortex-debug:registerUseNaturalFormat",
-                    "group": "navigation"
-                },
-                {
-                    "command": "cortex-debug.registers.refresh",
-                    "when": "view == cortex-debug.registers && debugState == stopped",
-                    "group": "navigation"
-                },
-                {
-                    "command": "cortex-debug.peripherals.refreshAll",
-                    "when": "view == cortex-debug.peripherals && debugState == stopped",
-                    "group": "navigation"
-                },
-                {
-                    "command": "cortex-debug.peripherals.collapseAll",
-                    "when": "view == cortex-debug.peripherals",
-                    "group": "navigation"
-                },
-                {
                     "command": "cortex-debug.liveWatch.addExpr",
                     "when": "view == cortex-debug.liveWatch",
+                    "group": "navigation"
+                },
+                {
+                    "command": "cortex-debug.varHexModeTurnOn",
+                    "when": "view == workbench.debug.variablesView && inDebugMode && debugType == 'cortex-debug' && debugState == stopped &&  cortex-debug:variableUseNaturalFormat",
+                    "group": "navigation"
+                },
+                {
+                    "command": "cortex-debug.varHexModeTurnOff",
+                    "when": "view == workbench.debug.variablesView && inDebugMode && debugType == 'cortex-debug' && debugState == stopped && !cortex-debug:variableUseNaturalFormat",
+                    "group": "navigation"
+                },
+                {
+                    "command": "cortex-debug.varHexModeTurnOn",
+                    "when": "view == workbench.debug.watchExpressionsView && inDebugMode && debugType == 'cortex-debug' && debugState == stopped &&  cortex-debug:variableUseNaturalFormat",
+                    "group": "navigation"
+                },
+                {
+                    "command": "cortex-debug.varHexModeTurnOff",
+                    "when": "view == workbench.debug.watchExpressionsView && inDebugMode && debugType == 'cortex-debug' && debugState == stopped && !cortex-debug:variableUseNaturalFormat",
+                    "group": "navigation"
+                },
+                {
+                    "command": "cortex-debug.varHexModeTurnOn",
+                    "when": "view == cortex-debug.liveWatch && inDebugMode && debugType == 'cortex-debug' && debugState == stopped &&  cortex-debug:variableUseNaturalFormat",
+                    "group": "navigation"
+                },
+                {
+                    "command": "cortex-debug.varHexModeTurnOff",
+                    "when": "view == cortex-debug.liveWatch && inDebugMode && debugType == 'cortex-debug' && debugState == stopped && !cortex-debug:variableUseNaturalFormat",
                     "group": "navigation"
                 }
             ],
             "debug/variables/context": [
                 {
-                    "command": "cortex-debug.varHexModeTurnOn",
-                    "when": "inDebugMode && debugType == 'cortex-debug' && debugState == stopped &&  cortex-debug:variableUseNaturalFormat",
-                    "group": "navigation"
-                },
-                {
-                    "command": "cortex-debug.varHexModeTurnOff",
-                    "when": "inDebugMode && debugType == 'cortex-debug' && debugState == stopped && !cortex-debug:variableUseNaturalFormat",
+                    "command": "cortex-debug.liveWatch.addToLiveWatch",
+                    "when": "inDebugMode && debugType == 'cortex-debug' && debugState == stopped",
                     "group": "navigation"
                 }
             ]
@@ -3135,16 +2954,6 @@
                 {
                     "id": "cortex-debug.liveWatch",
                     "name": "Cortex Live Watch",
-                    "when": "debugType == cortex-debug"
-                },
-                {
-                    "id": "cortex-debug.peripherals",
-                    "name": "Cortex Peripherals",
-                    "when": "debugType == cortex-debug"
-                },
-                {
-                    "id": "cortex-debug.registers",
-                    "name": "Cortex Registers",
                     "when": "debugType == cortex-debug"
                 }
             ]
@@ -3170,29 +2979,28 @@
         "tmp": "^0.2.1",
         "universal-analytics": "^0.5.3",
         "uuid": "^8.3.2",
-        "vscode-jsonrpc": "^6.0.0",
-        "xml2js": "^0.4.23"
+        "vscode-jsonrpc": "^6.0.0"
     },
     "description": "ARM Cortex-M GDB Debugger support for VSCode",
     "devDependencies": {
         "@types/binary-parser": "^1.5.1",
         "@types/mocha": "^5.2.7",
-        "@types/node": "^16.18.11",
-        "@types/vscode": "^1.52.0",
+        "@types/node": "16.x",
+        "@types/vscode": "^1.69.0",
         "@vscode/debugadapter": "^1.59.0",
         "@vscode/debugprotocol": "^1.59.0",
         "@vscode/test-electron": "^2.1.3",
         "mocha": "^9.1.3",
         "ts-loader": "^9.2.6",
         "tslint": "^5.12.1",
-        "typescript": "^3.9.7",
+        "typescript": "^4.7.4",
         "typescript-tslint-plugin": "^1.0.2",
-        "webpack": "^5.61.0",
+        "webpack": "^5.76.0",
         "webpack-cli": "^4.9.1"
     },
     "displayName": "Cortex-Debug",
     "engines": {
-        "vscode": ">=1.63.0"
+        "vscode": "^1.69.0"
     },
     "icon": "images/icon.png",
     "keywords": [
@@ -3204,7 +3012,8 @@
     "extensionDependencies": [
         "mcu-debug.debug-tracker-vscode",
         "mcu-debug.memory-view",
-        "mcu-debug.rtos-views"
+        "mcu-debug.rtos-views",
+        "mcu-debug.peripheral-viewer"
     ],
     "main": "./dist/extension.js",
     "name": "cortex-debug",
@@ -3214,10 +3023,16 @@
         "type": "git",
         "url": "https://github.com/Marus/cortex-debug.git"
     },
+    "bugs": {
+        "url": "https://github.com/Marus/cortex-debug/issues"
+    },
     "scripts": {
-        "vscode:prepublish": "webpack --mode production",
+        "vscode:prepublish": "npm run lint && webpack --mode production && node dist/docgen.js",
         "watch": "webpack --mode development --watch",
-        "compile": "webpack --mode development",
-        "test-compile": "tsc -p ./"
+        "compile": "webpack --mode development && node dist/docgen.js",
+        "test-compile": "tsc -p ./",
+        "package": "node ./release.js --package",
+        "publish": "node ./release.js --publish --vsx-also",
+        "lint": "./node_modules/tslint/bin/tslint --project ."
     }
 }
